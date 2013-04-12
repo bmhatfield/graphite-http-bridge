@@ -97,26 +97,41 @@ class GraphiteSender(threading.Thread):
             self.close()
             raise e
 
+def validate_metric(metric):
+    for param in ['metric', 'value', 'timestamp']:
+        if param not in metric:
+            return False
+    else:
+        return True
+
+def enqueue_metric(metric, queue):
+    try:
+        print "Queueing metric: %s" % (metric)
+        queue.put((metric['metric'], (metric['timestamp'], metric['value'])))
+    except Exception as e:
+        print e
+        bottle.abort(500, "Unable to store metric!")
 
 @app.post('/publish/:api_key')
 def publish(api_key):
     if api_key in valid_api_keys:
         try:
             body = bottle.request.body.read()
-            params = json.loads(body)
+            metrics = json.loads(body)
         except:
+            print body
             bottle.abort(400, "Unable to successfully parse JSON")
 
-        for param in ['metric', 'value', 'timestamp']:
-            if param not in params:
-                bottle.abort(400, "JSON Missing Value: %s" % (param))                
-
-        try:
-            print "Queueing metric: %s" % (params)
-            q.put((params['metric'], (params['timestamp'], params['value'])))
-        except Exception as e:
-            print e
-            bottle.abort(500, "Unable to store metric!")
+        if type(metrics) == list:
+            for metric in metrics:
+                if not validate_metric(metric):
+                    print "Validation failed: %s" % (metric)
+                    bottle.abort(400, "Invalid Metric Structure: %s" % (str(metric)))
+                else:
+                    enqueue_metric(metric, q)
+        else:
+            print type(metrics)
+            bottle.abort(400, "Metric structure must be list containing metric dicts")
     else:
         bottle.abort(403, "API Key not valid")
 
