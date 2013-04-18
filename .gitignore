@@ -31,3 +31,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# API Keys Yaml File
+api_keys.yml
+
+# Log files
+*.log
