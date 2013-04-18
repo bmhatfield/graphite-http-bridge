@@ -1,3 +1,6 @@
+import logging
+log = logging.getLogger(__name__)
+
 class Metric():
     def __init__(self, metric_dict):
         if self.valid(metric_dict):

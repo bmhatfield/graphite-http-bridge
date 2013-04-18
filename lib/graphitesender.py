@@ -4,6 +4,9 @@ import pickle
 import socket
 import threading
 
+import logging
+log = logging.getLogger(__name__)
+
 class GraphiteSender(threading.Thread):
     def __init__(self, metric_queue, host, port, udp=False):
         threading.Thread.__init__(self)
@@ -31,13 +34,13 @@ class GraphiteSender(threading.Thread):
                     batch.append(self.queue.get())
 
                 if len(batch) > 0:
-                    print "Found metric batch with %s metrics" % (len(batch))
+                    log.debug("Found metric batch with %s metrics" % (len(batch)))
 
                     try:
                         self.send(self.pickled(batch))
                         self.last_sent = time.time()
                     except:
-                        print "Failed to send: re-enqueueing %s metrics" % (len(batch))
+                        log.warning("Failed to send: re-enqueueing %s metrics" % (len(batch)))
                         for metric in batch:
                             self.queue.put(metric)
                         time.sleep(self.send_every)
@@ -79,12 +82,12 @@ class GraphiteSender(threading.Thread):
                 self.connect()
             
             if self.socket is not None:
-                print "Sending pickled data..."
+                log.debug("Sending pickled data...")
                 self.socket.sendall(data)
-                print "Sent."
+                log.debug("Sent.")
             else:
-                print "Socket unavailable."
+                log.error("Socket unavailable.")
         except Exception as e:
-            print "Send failed", e
+            log.error("Send failed", e)
             self.close()
             raise e
