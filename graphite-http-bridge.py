@@ -10,8 +10,8 @@ import optparse
 import yaml
 import daemon
 import bottle
-
 import pidfile
+
 from metric import Metric
 from apiauth import APIAuthenticator
 from graphitesender import GraphiteSender
