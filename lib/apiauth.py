@@ -13,4 +13,5 @@ class APIAuthenticator():
         self.valid_keys.add(key)
 
     def remove(self, key):
+        log.debug("Removing API key: %s" % (key))
         self.valid_keys.discard(key)

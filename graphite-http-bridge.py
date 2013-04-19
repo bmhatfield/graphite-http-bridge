@@ -1,17 +1,27 @@
+# Standard Python Libraries
 import os
 import sys
-sys.path.append('lib')
-
 import json
 import Queue
 import logging
 import optparse
 
+# Third Party Libraries
+# http://pyyaml.org/
 import yaml
+
+# https://pypi.python.org/pypi/python-daemon/
 import daemon
+
+# http://bottlepy.org/docs/dev/
+# Built against bottle 0.12-dev
 import bottle
+
+# https://github.com/bmhatfield/python-pidfile
 import pidfile
 
+# Application Libraries
+sys.path.append('lib')
 from metric import Metric
 from apiauth import APIAuthenticator
 from graphitesender import GraphiteSender
@@ -53,9 +63,13 @@ else:
 log_output.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 log.addHandler(log_output)
 
-# Instatiate various objects required for the application
+# Create Bottle Application
 app = bottle.Bottle()
+
+# Create API Authenticator (Keys added later)
 authenticator = APIAuthenticator()
+
+# Create Threadsafe Queue
 q = Queue.Queue(maxsize=options.max_depth)
 
 # Configure the main route: the API POST route
@@ -84,8 +98,8 @@ def publish(api_key):
     else:
         bottle.abort(403, "API Key not valid")
 
+
 def main():
-    log.debug("Starting Main()")
     try:
         if 'keys' in api_conf:
             for key in api_conf['keys']:
@@ -97,10 +111,11 @@ def main():
         sender_thread.start()
 
         app.run(server='paste', host='0.0.0.0', port=options.local_port,
-                        debug=options.debug, reloader=options.reloader)
+                debug=options.debug, reloader=options.reloader)
     except Exception as e:
         log.error("STARTUP FAILED")
         log.error(str(e))
+
 
 if __name__ == "__main__":
     pidpath = os.path.join(options.run_directory, 'bridge.pid')
@@ -111,8 +126,7 @@ if __name__ == "__main__":
         else:
             try:
                 with daemon.DaemonContext(working_directory=options.run_directory,
-                                          pidfile=pidfile.PidFile(pidpath),
-                                          files_preserve=[log_output.stream]):
+                                          pidfile=pidfile.PidFile(pidpath), files_preserve=[log_output.stream]):
                     main()
             except (Exception, SystemExit) as e:
                 with open(log_path, 'a+') as fh:
