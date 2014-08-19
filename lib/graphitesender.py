@@ -28,9 +28,9 @@ class GraphiteSender(threading.Thread):
 
     def run(self):
         while self.enabled:
-            if self.queue.qsize() > self.batch or (self.send_overdue() and not self.queue.empty()):
+            if self.queue.qsize() >= self.batch or (self.send_overdue() and not self.queue.empty()):
                 batch = []
-                while not self.queue.empty():
+                while len(batch) <= self.batch and not self.queue.empty():
                     batch.append(self.queue.get())
 
                 if len(batch) > 0:
@@ -39,15 +39,17 @@ class GraphiteSender(threading.Thread):
                     try:
                         self.send(self.pickled(batch))
                         self.last_sent = time.time()
-                    except:
+                    except Exception as e:
+                        log.error("Exception Sending: %s" % e)
                         log.warning("Failed to send: re-enqueueing %s metrics" % (len(batch)))
                         for metric in batch:
                             self.queue.put(metric)
-                        time.sleep(self.send_every)
+                        log.debug("Finished re-enqueueing messages")
                 else:
                     self.sendnow = False
             else:
-                time.sleep(1)
+                log.debug("Nothing to send: sleeping %s" % self.send_every)
+                time.sleep(self.send_every)
 
     def send_overdue(self):
         return time.time() - self.last_sent > self.send_every
@@ -80,7 +82,7 @@ class GraphiteSender(threading.Thread):
         try:
             if self.socket is None:
                 self.connect()
-            
+
             if self.socket is not None:
                 log.debug("Sending pickled data...")
                 self.socket.sendall(data)
