@@ -1,3 +1,5 @@
+import Queue
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -15,5 +17,14 @@ class Metric():
         else:
             return True
 
+    def discard(self):
+        log.warning("Queue full: dropping metric '%s' at %s (%s)" % (self.metric['metric'], self.metric['timestamp'], self.metric['value']))
+
     def enqueue(self, queue):
-        queue.put((self.metric['metric'], (self.metric['timestamp'], self.metric['value'])))
+        if not queue.full():
+            try:
+                queue.put((self.metric['metric'], (self.metric['timestamp'], self.metric['value'])), block=True, timeout=1)
+            except Queue.Full:
+                self.discard()
+        else:
+            self.discard()

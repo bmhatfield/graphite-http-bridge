@@ -81,7 +81,6 @@ def publish(api_key):
         try:
             body = bottle.request.body.read()
             metrics = json.loads(body)
-            log.debug(metrics)
         except:
             log.error("Request unparsable: %s" % (body))
             bottle.abort(400, "Unable to successfully parse JSON")

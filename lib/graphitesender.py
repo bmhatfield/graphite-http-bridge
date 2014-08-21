@@ -32,7 +32,7 @@ class GraphiteSender(threading.Thread):
                 log.debug("Starting new batch in GraphiteSender")
 
                 batch = []
-                while len(batch) <= self.batch and not self.queue.empty():
+                while len(batch) < self.batch and not self.queue.empty():
                     batch.append(self.queue.get())
 
                 if len(batch) > 0:
