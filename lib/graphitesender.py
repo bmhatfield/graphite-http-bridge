@@ -19,7 +19,7 @@ class GraphiteSender(threading.Thread):
         self.udp = udp
         self.batch = 250
         self.last_sent = time.time()
-        self.send_every = 30
+        self.send_every = 10
         self.timeout = 5.0
         self.enabled = True
         self.sendnow = False
@@ -28,29 +28,40 @@ class GraphiteSender(threading.Thread):
 
     def run(self):
         while self.enabled:
-            if self.queue.qsize() > self.batch or (self.send_overdue() and not self.queue.empty()):
+            if self.queue.qsize() >= self.batch or (self.send_overdue() and not self.queue.empty()):
+                log.debug("Starting new batch in GraphiteSender")
+
                 batch = []
-                while not self.queue.empty():
+                while len(batch) < self.batch and not self.queue.empty():
                     batch.append(self.queue.get())
 
                 if len(batch) > 0:
-                    log.debug("Found metric batch with %s metrics" % (len(batch)))
+                    log.debug("Preparing to send batch with %s metrics" % (len(batch)))
 
                     try:
                         self.send(self.pickled(batch))
                         self.last_sent = time.time()
-                    except:
+                    except Exception as e:
+                        log.error("Exception Sending: %s" % e)
                         log.warning("Failed to send: re-enqueueing %s metrics" % (len(batch)))
                         for metric in batch:
                             self.queue.put(metric)
-                        time.sleep(self.send_every)
+                        log.debug("Finished re-enqueueing messages")
                 else:
+                    log.debug("Send attempted, but no metrics available for send")
                     self.sendnow = False
+
             else:
-                time.sleep(1)
+                log.debug("Nothing to send: sleeping %s" % self.send_every)
+                time.sleep(self.send_every)
 
     def send_overdue(self):
-        return time.time() - self.last_sent > self.send_every
+        overdue = time.time() - self.last_sent > self.send_every
+
+        if overdue:
+            log.debug("Batch marked as overdue for send")
+
+        return overdue
 
     def pickled(self, tuples):
         payload = pickle.dumps(tuples)
@@ -67,20 +78,22 @@ class GraphiteSender(threading.Thread):
         self.socket.settimeout(self.timeout)
 
         if self.socket is not None:
+            log.debug("Attempting to connect to %s:%s" % (self.host, self.port))
             self.socket.connect((self.host, self.port))
         else:
             raise IOError("Unable to create socket")
 
     def close(self):
         if self.socket is not None:
+            log.debug("Socket close called, with socket available to close")
             self.socket.close()
-        self.socket = None
+            self.socket = None
 
     def send(self, data):
         try:
             if self.socket is None:
                 self.connect()
-            
+
             if self.socket is not None:
                 log.debug("Sending pickled data...")
                 self.socket.sendall(data)
