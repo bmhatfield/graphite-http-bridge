@@ -114,8 +114,8 @@ def publish(api_key):
                         continue
                     else:
                         metric = {
-                            'metric': parts[0]
-                            'value': parts[1]
+                            'metric': parts[0],
+                            'value': parts[1],
                             'timestamp': parts[2]
                         }
 
