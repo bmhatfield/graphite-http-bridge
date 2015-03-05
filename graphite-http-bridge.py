@@ -99,6 +99,37 @@ def publish(api_key):
     else:
         bottle.abort(403, "API Key not valid")
 
+@app.post('/metrics/lines/:api_key')
+def publish(api_key):
+    if authenticator.valid(api_key):
+        body = bottle.request.body.read()
+        metrics = body.readlines()
+
+        if type(metrics) == list:
+            for line in metrics:
+                try:
+                    parts = line.split()
+
+                    if len(parts) != 3:
+                        continue
+                    else:
+                        metric = {
+                            'metric': parts[0],
+                            'value': parts[1],
+                            'timestamp': parts[2]
+                        }
+
+                    m = Metric(metric)
+                    m.enqueue(q)
+                except ValueError:
+                    bottle.abort(400, "Invalid Metric Structure: %s" % (str(metric)))
+                except Exception:
+                    bottle.abort(500, "Unable to store metric!")
+        else:
+            bottle.abort(400, "Metric structure must be lines of 'metric.path value timestamp'")
+    else:
+        bottle.abort(403, "API Key not valid")
+
 
 def main():
     try:
