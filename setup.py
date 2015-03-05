@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from distutils.core import setup
 
-version = "0.3.0"
+version = "0.3.1"
 
 setup(name="graphite-http-bridge",
       version=version,

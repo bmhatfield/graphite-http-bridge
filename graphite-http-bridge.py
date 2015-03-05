@@ -100,10 +100,9 @@ def publish(api_key):
         bottle.abort(403, "API Key not valid")
 
 @app.post('/metrics/lines/:api_key')
-def publish(api_key):
+def metrics_lines(api_key):
     if authenticator.valid(api_key):
-        body = bottle.request.body.read()
-        metrics = body.readlines()
+        metrics = bottle.request.body.readlines()
 
         if type(metrics) == list:
             for line in metrics:
